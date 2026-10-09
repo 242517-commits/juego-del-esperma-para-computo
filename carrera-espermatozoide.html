@@ -1,0 +1,166 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Carrera del Espermatozoide - Obstetricia</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#12041f;--ink:#fff;--gold:#ffd23f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12041f}}
+:root[data-theme="dark"]{--bg:#12041f}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Fredoka,system-ui,sans-serif;display:flex;justify-content:center}
+#app{width:100%;max-width:900px;padding:8px}
+#hud{display:grid;grid-template-columns:1.6fr 1.2fr .8fr .8fr;gap:6px;margin-bottom:6px}
+.h{background:#ffffff14;border:2px solid #ffffff2e;border-radius:14px;padding:4px 9px;font-size:11px;line-height:1.25}
+.h b{display:block;font-size:15px;font-weight:600}
+#eb{height:9px;background:#0006;border-radius:9px;overflow:hidden;margin-top:3px}#ef{height:100%;width:100%;background:linear-gradient(90deg,#ff4f6d,#ffd23f,#3ddc84)}
+#stage{position:relative}
+canvas{width:100%;display:block;border-radius:18px;border:3px solid #fff;touch-action:none}
+#cf{position:absolute;inset:0;pointer-events:none;border:3px solid transparent}
+.ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px;background:#0b0216e6;border-radius:18px;overflow:auto}
+.ov.q{background:#0b0216cc}.hide{display:none}
+h1{margin:4px 0;font-size:clamp(22px,5vw,36px)}h2{margin:6px 0;font-size:clamp(16px,3.6vw,22px);font-weight:600}
+p{margin:4px 0;max-width:560px;line-height:1.35}.sm{font-size:13px;opacity:.8}.big{font-size:64px;font-weight:700;color:var(--gold)}
+.card{width:100%;max-width:640px}.tag{font-size:13px;color:var(--gold);font-weight:600}
+.bar{height:8px;background:#fff3;border-radius:8px;overflow:hidden;margin:6px 0}.bar i{display:block;height:100%;width:100%;background:var(--gold)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+@media (max-width:560px){.opts{grid-template-columns:1fr}}
+.o{font:inherit;font-size:14px;color:#fff;background:#ffffff1f;border:2px solid #fff5;border-radius:14px;padding:9px 11px;text-align:left;cursor:pointer}
+.o:hover:not(:disabled){background:#ffffff3a}.o.ok{background:#1faa5a;border-color:#7dffb0}.o.no{background:#c4284a;border-color:#ff9bb0}
+#ex{font-size:13px;line-height:1.35;min-height:20px}#rs{font-size:12px;margin-top:6px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.b{font:inherit;font-weight:700;font-size:20px;color:#3a0a63;background:var(--gold);border:0;border-bottom:5px solid #c58f00;border-radius:16px;padding:10px 28px;margin-top:12px;cursor:pointer}
+.b:active{transform:translateY(3px);border-bottom-width:2px}
+.pod{display:flex;align-items:flex-end;justify-content:center;gap:8px;margin:10px 0}
+.pl{width:92px;border-radius:12px 12px 0 0;display:flex;flex-direction:column;align-items:center;padding-top:6px;font-size:12px;font-weight:600}
+.dot{width:26px;height:26px;border-radius:50%;box-shadow:0 0 10px currentColor}
+#st{font-size:12px;min-height:18px;margin-top:5px;opacity:.9}
+</style></head><body><div id="app">
+<div id="hud"><div class="h">Zona anatómica<b id="z">-</b></div><div class="h">Energía vital<div id="eb"><div id="ef"></div></div></div><div class="h">Posición<b id="p">1º</b></div><div class="h">Correctas<b id="q">0/4</b></div></div>
+<div id="stage"><canvas id="c" width="800" height="450"></canvas><canvas id="cf" width="800" height="450"></canvas><div id="ov" class="ov"></div></div>
+<div id="st"></div></div>
+<script>
+const C=document.getElementById('c'),X=C.getContext('2d'),W=800,H=450,$=id=>document.getElementById(id),D=[[0,-1],[1,0],[0,1],[-1,0]];
+const LV=[
+{n:'El Canal Vaginal',bg:['#3b0a66','#16042e'],wc:'#c47bff',cs:56,hint:'🧪 Esquiva el pH ácido: te quema la energía. ⭐ lo limpia.'},
+{n:'El Cuello Uterino (Cérvix)',bg:['#ff9ec7','#e0529a'],wc:'#8a1658',cs:56,hint:'💧 El moco denso reduce tu velocidad a la mitad. ¡Recoge una ⭐ para limpiarlo!'},
+{n:'La Cavidad Uterina',bg:['#ff9580','#d9483a'],wc:'#7d1d17',cs:56,hint:'👾 Los macrófagos te persiguen para destruirte. ¡No te dejes alcanzar!'},
+{n:'El Istmo de la Trompa',bg:['#9a3dff','#4b0fb8'],wc:'#f2d2ff',cs:40,hint:'🌊 Laberinto estrecho y cilios que te empujan hacia atrás.'},
+{n:'La Ampolla Tubárica',bg:['#ff2bb0','#a8007a'],wc:null,cs:0,hint:'🟡 ¡Pista libre a máxima velocidad! Toca el Ovocito antes que nadie.'}];
+const QB=[
+[["¿Cuál es el pH vaginal normal en la edad reproductiva?",["3,8 – 4,5","5,5 – 6,0","7,0 – 7,4","8,0 – 8,5"],0,"Los lactobacilos transforman el glucógeno en ácido láctico y mantienen el pH ácido."],
+["¿Qué componente del semen neutraliza transitoriamente la acidez vaginal?",["Fructosa","Plasma seminal alcalino","Testosterona","Hialuronidasa"],1,"Las secreciones de vesículas seminales y próstata elevan el pH local."],
+["¿Qué microorganismo predomina en la flora vaginal sana?",["Lactobacillus","Candida albicans","Gardnerella vaginalis","Escherichia coli"],0,"Los Lactobacillus protegen frente a patógenos al acidificar el medio."]],
+[["¿Qué hormona vuelve el moco cervical abundante, filante y permeable cerca de la ovulación?",["Progesterona","Estrógeno","Prolactina","hCG"],1,"El pico de estrógeno genera moco filante; la progesterona lo espesa y lo hace impenetrable."],
+["¿Dónde se almacenan temporalmente los espermatozoides en el cérvix?",["Glándulas de Bartolino","Criptas endocervicales","Glándulas de Skene","Fondo de saco posterior"],1,"Las criptas funcionan como reservorio y liberan espermatozoides durante horas."],
+["La capacitación espermática consiste en…",["Maduración en el testículo","Cambios funcionales en el tracto genital femenino que habilitan la fecundación","Producción de testosterona","Formación del acrosoma"],1,"Ocurre tras la eyaculación y permite la reacción acrosómica y la hiperactivación."]],
+[["¿Qué hormona domina la fase secretora (lútea) del endometrio?",["FSH","Progesterona","Oxitocina","Estrógeno"],1,"El cuerpo lúteo secreta progesterona, que transforma el endometrio en secretor."],
+["De millones de espermatozoides depositados, ¿cuántos llegan a la ampolla?",["Millones","Decenas de millones","Unos cientos","Todos"],2,"Solo unos cientos sobreviven al trayecto: es una selección natural."],
+["¿Qué células inmunes del útero pueden fagocitar espermatozoides?",["Macrófagos y neutrófilos","Eritrocitos","Plaquetas","Adipocitos"],0,"Tras el coito hay una reacción leucocitaria en el tracto genital femenino."]],
+[["¿Dónde ocurre habitualmente la fecundación?",["Istmo","Ampolla de la trompa uterina","Cavidad uterina","Cérvix"],1,"La ampolla es el tercio externo y más ancho de la trompa."],
+["La hiperactivación espermática depende sobre todo de…",["Entrada de calcio por canales CatSper","Pérdida de agua","Descenso de progesterona","Aumento del pH vaginal"],0,"El calcio produce un batido flagelar vigoroso y asimétrico que permite avanzar y penetrar."],
+["¿Cuánto tiempo es fecundable el ovocito tras la ovulación?",["12 – 24 horas","3 – 5 días","7 días","48 – 72 horas"],0,"El espermatozoide sobrevive hasta ~5 días, por eso la ventana fértil es más larga que la vida del ovocito."]]];
+const BASE=[135,135,135,150,230],NAMES=['Azul','Verde','Amarillo'],COLS=['#4aa8ff','#3ddc84','#ffd23f'];
+let S='menu',lv=0,P,R=[],RC=[],g=[],cols,rows,ox,oy,cs,gr,dist,pd,pdT=0,items=[],foes=[],bake,WW=W,cam=0,en=100,ok=0,pop=[],keys={},ptr=null,T=0,boost=0,mucus=0,acid=0,inv=0,introT=0,gq,gT,crossT,fast=0,CF=[],cfOn=0,last=0;
+const BUB=Array.from({length:22},()=>({x:Math.random()*W,y:Math.random()*H,r:4+Math.random()*16,z:.2+Math.random()*.5,v:Math.random()*2}));
+function ov(h,q){const o=$('ov');o.innerHTML=h;o.className='ov'+(q?' q':'')}
+function hov(){$('ov').className='ov hide'}
+function bfs(sx,sy){const d=new Array(cols*rows).fill(-1);d[sy*cols+sx]=0;const q=[[sx,sy]];for(let h=0;h<q.length;h++){const[x,y]=q[h],c=g[y*cols+x];for(let i=0;i<4;i++)if(!c.w[i]){const nx=x+D[i][0],ny=y+D[i][1],k=ny*cols+nx;if(d[k]<0){d[k]=d[y*cols+x]+1;q.push([nx,ny])}}}return d}
+function cellOf(x,y){return[Math.max(0,Math.min(cols-1,Math.floor((x-ox)/cs))),Math.max(0,Math.min(rows-1,Math.floor((y-oy)/cs)))]}
+function cc(x,y){return{x:ox+(x+.5)*cs,y:oy+(y+.5)*cs}}
+function maze(L){cs=L.cs;cols=Math.floor(W/cs);rows=Math.floor(H/cs);ox=(W-cols*cs)/2;oy=(H-rows*cs)/2;gr=rows>>1;g=[];
+for(let y=0;y<rows;y++)for(let x=0;x<cols;x++)g.push({x,y,w:[1,1,1,1],v:0});
+const at=(x,y)=>x<0||y<0||x>=cols||y>=rows?null:g[y*cols+x],st=[at(0,gr)];st[0].v=1;
+while(st.length){const c=st[st.length-1],n=[];D.forEach((d,i)=>{const q=at(c.x+d[0],c.y+d[1]);if(q&&!q.v)n.push([i,q])});if(!n.length){st.pop();continue}const[i,q]=n[Math.random()*n.length|0];c.w[i]=0;q.w[(i+2)%4]=0;q.v=1;st.push(q)}
+for(let k=0;k<cols*rows*.12;k++){const c=g[Math.random()*g.length|0],i=Math.random()*4|0,q=at(c.x+D[i][0],c.y+D[i][1]);if(q){c.w[i]=0;q.w[(i+2)%4]=0}}
+dist=bfs(cols-1,gr);const t=cs>45?7:5;bake=document.createElement('canvas');bake.width=W;bake.height=H;const b=bake.getContext('2d');
+b.strokeStyle=L.wc;b.lineWidth=t;b.lineCap='round';b.shadowColor=L.wc;b.shadowBlur=10;b.beginPath();RC=[];
+const seg=(x1,y1,x2,y2,skip)=>{RC.push({x:Math.min(x1,x2)-t/2,y:Math.min(y1,y2)-t/2,w:Math.abs(x2-x1)+t,h:Math.abs(y2-y1)+t});if(!skip){b.moveTo(x1,y1);b.lineTo(x2,y2)}};
+for(const c of g){const x0=ox+c.x*cs,y0=oy+c.y*cs;if(c.w[0]&&c.y==0)seg(x0,y0,x0+cs,y0);if(c.w[1])seg(x0+cs,y0,x0+cs,y0+cs,c.x==cols-1&&c.y==gr);if(c.w[2])seg(x0,y0+cs,x0+cs,y0+cs);if(c.w[3]&&c.x==0)seg(x0,y0,x0,y0+cs)}
+b.stroke()}
+function spots(n){return g.filter(c=>c.x>1&&!(c.x==cols-1&&c.y==gr)).sort(()=>Math.random()-.5).slice(0,n).map(c=>cc(c.x,c.y))}
+function load(i,leads){lv=i;const L=LV[i];items=[];foes=[];pop=[];cam=0;mucus=i==1?1:0;acid=0;inv=0;WW=i==4?2700:W;R=[];
+if(i<4){maze(L);const s=cc(0,gr);P={x:s.x,y:s.y,a:0,ta:0,r:i==3?7:10};
+if(i==0){spots(9).forEach(p=>items.push({t:'🧪',...p}))}
+if(i==1){spots(8).forEach(p=>items.push({t:'💧',...p}))}
+spots(i==3?4:3).forEach(p=>items.push({t:'⭐',...p}));
+if(i==2){spots(3).forEach(p=>foes.push({x:p.x,y:p.y}));pd=bfs(0,gr)}}
+else{RC=[];bake=null;P={x:40,y:H*.5,a:0,ta:0,r:10}}
+for(let k=0;k<3;k++){let pts;
+if(i<4){pts=[];let [x,y]=[0,gr];pts.push(cc(x,y));while(dist[y*cols+x]>0){const c=g[y*cols+x];let bx=x,by=y,bd=1e9;for(let j=0;j<4;j++)if(!c.w[j]){const nx=x+D[j][0],ny=y+D[j][1];if(dist[ny*cols+nx]<bd){bd=dist[ny*cols+nx];bx=nx;by=ny}}x=bx;y=by;pts.push(cc(x,y))}pts.push({x:ox+cols*cs-cs*.35,y:oy+(gr+.5)*cs})}
+else{const ly=[90,170,360][k];pts=[{x:40,y:ly},{x:WW-125,y:ly}]}
+const cum=[0];for(let j=1;j<pts.length;j++)cum.push(cum[j-1]+Math.hypot(pts[j].x-pts[j-1].x,pts[j].y-pts[j-1].y));
+const sp=[105+Math.random()*20,100+Math.random()*20,108+Math.random()*18,[96,100][k%2]+Math.random()*10,205+Math.random()*28][i]*(i<3?1:1);
+R.push({k,nm:NAMES[k],col:COLS[k],pts,cum,len:cum[cum.length-1],sp,s:leads?Math.max(-10,leads[k])*sp:0,st:'run',arr:0,ans:0,ct:0})}}
+function pAt(r,s){const c=r.cum,p=r.pts;if(s<=0)return p[0];if(s>=r.len)return p[p.length-1];let i=1;while(c[i]<s)i++;const t=(s-c[i-1])/(c[i]-c[i-1]);return{x:p[i-1].x+(p[i].x-p[i-1].x)*t,y:p[i-1].y+(p[i].y-p[i-1].y)*t}}
+function rpos(r){const p=pAt(r,r.s);let x=p.x,y=p.y;if(r.s<=0)y+=(r.k-1)*12;if(lv==4)y+=Math.sin(r.s/70+r.k*2)*30;if(r.st!='run')y+=(r.k-1)*13;return{x,y}}
+function startGame(){en=100;ok=0;boost=0;T=0;cfOn=0;$('cf').getContext('2d').clearRect(0,0,W,H);load(0);intro('¡Corre contra 3 rivales! Responde rápido en cada compuerta.')}
+function intro(m){S='intro';introT=3;ov(`<p class=sm>Nivel ${lv+1} de 5</p><h1>${LV[lv].n}</h1><p>${LV[lv].hint}</p><p>${m||''}</p><div id=cd class=big>3</div>`)}
+function menu(){ov(`<h1>☄️ Carrera del Espermatozoide</h1><h2>Obstetricia: 5 zonas anatómicas</h2><p>Corre por el tracto reproductor femenino contra los espermatozoides <b style="color:#4aa8ff">azul</b>, <b style="color:#3ddc84">verde</b> y <b style="color:#ffd23f">amarillo</b>. En cada compuerta responde una pregunta clínica: si fallas o tardas, te adelantan. Si aciertas en menos de 5 s, ganas un Súper Impulso ⚡.</p><p class=sm>Mueve con flechas o WASD. En móvil, mantén el dedo sobre la pantalla. Responde con clic o teclas 1-4.</p><button class=b onclick="startGame()">¡Jugar!</button>`)}
+function openGate(){S='gate';const q=QB[lv][Math.random()*3|0],ix=[0,1,2,3].sort(()=>Math.random()-.5);gq={o:ix.map(i=>q[1][i]),c:ix.indexOf(q[2]),e:q[3],done:0};gT=T;
+ov(`<div class=card><div class=tag>🧬 Compuerta de Selección Natural</div><div class=bar><i id=tb></i></div><h2>${q[0]}</h2><div class=opts>${gq.o.map((t,i)=>`<button class=o onclick="ans(${i})">${i+1}. ${t}</button>`).join('')}</div><div id=ex></div><div id=rs></div></div>`,1)}
+function ans(i){if(S!=='gate'||gq.done)return;gq.done=1;const el=T-gT,good=i===gq.c&&el<=10;fast=good&&el<=5;
+document.querySelectorAll('.o').forEach((b,j)=>{b.disabled=1;if(j===gq.c)b.classList.add('ok');else if(j===i)b.classList.add('no')});
+if(good){ok++;en=Math.min(100,en+25);crossT=T+.9}else{en-=15;crossT=T+4}
+$('ex').innerHTML=(good?(fast?'⚡ ¡Súper Impulso! ':'✅ ¡Correcto! '):(i<0?'⏰ Tiempo agotado. ':'❌ Incorrecto. '))+gq.e+(good?'':' Los rivales te sacan ventaja…');if(en<=0)end(false,'Te quedaste sin energía.')}
+function next(){const cr=R.filter(r=>r.st==='cross').length+1,leads=R.map(r=>r.st==='cross'?Math.min(8,crossT-r.ct):r.st==='wait'?-(Math.max(0,r.ans-crossT)+1.5):-((r.len-r.s)/r.sp+3));
+load(lv+1,leads);boost=fast?7:0;intro(`Cruzaste la compuerta en ${cr}º lugar${fast?' con ⚡ Súper Impulso':''}.`)}
+function end(win,why){if(S==='end')return;S='end';const rr=R.map(r=>({r,rem:r.st!=='run'?-1:r.len-r.s})).sort((a,b)=>a.rem-b.rem).map(x=>x.r);
+if(win){const pl=(n,h,c,l)=>`<div class=pl style="height:${h}px;background:${c}"><div class=dot style="background:${l};color:${l}"></div>${n}</div>`;
+ov(`<h1>🏆 ¡Líder de la Fecundación!</h1><h2>Obstetra Experto</h2><div class=pod>${pl(rr[0].nm+' 2º',100,'#7a7a9a',rr[0].col)}${pl('¡Tú! 1º',140,'#d9a400','#fff')}${pl(rr[1].nm+' 3º',70,'#a0613a',rr[1].col)}</div><p class=sm>4º: ${rr[2].nm}. Preguntas correctas: ${ok}/4.</p><button class=b onclick="startGame()">Jugar otra vez</button>`);cfOn=1;CF=[];for(let i=0;i<160;i++)confetti(1)}
+else ov(`<h1>🧫 Fecundación por un Rival</h1><h2>Inténtalo de nuevo</h2><p>${why}</p><p class=sm>Llegaste a la zona ${lv+1} de 5 con ${ok} preguntas correctas.</p><button class=b onclick="startGame()">Reintentar</button>`)}
+function confetti(b){CF.push({x:b?W/2:Math.random()*W,y:b?H*.4:-10,vx:(Math.random()-.5)*(b?14:3),vy:b?-Math.random()*13-2:2,c:`hsl(${Math.random()*360},90%,60%)`,s:5+Math.random()*6,r:Math.random()*6})}
+function push(){for(const q of RC){const cx=Math.max(q.x,Math.min(P.x,q.x+q.w)),cy=Math.max(q.y,Math.min(P.y,q.y+q.h)),ex=P.x-cx,ey=P.y-cy,d=Math.hypot(ex,ey);if(d<P.r&&d>.001){P.x+=ex/d*(P.r-d);P.y+=ey/d*(P.r-d)}}}
+function move(dx,dy){P.x+=dx;push();P.y+=dy;push();push();P.x=Math.max(P.r+3,Math.min(WW-P.r-3,P.x));P.y=Math.max(P.r+3,Math.min(H-P.r-3,P.y))}
+function say(t,x,y,c){pop.push({t,x:x-cam,y,l:1.4,c:c||'#fff'})}
+function rank(){if(S==='gate')return 1+R.filter(r=>r.st==='cross').length;let rp;if(lv==4)rp=Math.max(0,WW-125-P.x);else{const[a,b]=cellOf(P.x,P.y);rp=dist[b*cols+a]*cs}return 1+R.filter(r=>r.st!=='run'||r.len-r.s<rp).length}
+function ur(r,dt){if(r.st==='run'){r.s+=r.sp*(1+.1*Math.sin(T*1.7+r.k*2))*dt;if(r.s>=r.len){r.s=r.len;if(lv==4)end(false,`El espermatozoide ${r.nm} llegó primero al ovocito.`);else{r.st='wait';r.arr=T;r.ans=T+5+Math.random()*4}}}else if(r.st==='wait'&&T>=r.ans){r.st='cross';r.ct=T}}
+function upd(dt){T+=dt;
+if(S==='intro'){introT-=dt;const e=$('cd');if(e)e.textContent=introT>.3?Math.ceil(introT):'¡YA!';if(introT<=0){S='play';hov()}return}
+if(S!=='play'&&S!=='gate')return;
+R.forEach(r=>ur(r,dt));if(S==='end')return;
+if(S==='gate'){const el=T-gT;if(!gq.done){$('tb').style.width=Math.max(0,100-el*10)+'%';if(el>10)ans(-1)}else if(T>=crossT&&S==='gate')next();const e=$('rs');if(e)e.innerHTML=R.map(r=>`<span style="color:${r.col}">● ${r.nm}: ${r.st=='cross'?'cruzó ✔':r.st=='wait'?'respondiendo…':'en camino'}</span>`).join('');return}
+let dx=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0),dy=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0);
+if(ptr&&!dx&&!dy){const vx=ptr.x-(P.x-cam),vy=ptr.y-P.y,d=Math.hypot(vx,vy);if(d>10){dx=vx/d;dy=vy/d}}
+const m=Math.hypot(dx,dy);if(m){dx/=m;dy/=m;P.ta=Math.atan2(dy,dx)}
+const sp=BASE[lv]*(mucus?.5:1)*(boost>0?1.5:1)*(acid>0?.85:1);move(dx*sp*dt-(lv==3?40*dt:0),dy*sp*dt);
+P.a+=Math.atan2(Math.sin(P.ta-P.a),Math.cos(P.ta-P.a))*Math.min(1,dt*10);cam=Math.max(0,Math.min(WW-W,P.x-300));
+en-=dt;boost-=dt;inv-=dt;if(acid>0){acid-=dt;en-=4*dt}
+for(let i=items.length-1;i>=0;i--){const it=items[i];if(Math.hypot(it.x-P.x,it.y-P.y)<22){if(it.t=='⭐'){items.splice(i,1);mucus=0;acid=0;en=Math.min(100,en+12);say('¡Capacitado! +12',it.x,it.y,'#ffd23f')}else if(it.t=='💧'){if(!mucus){mucus=1;say('¡Moco denso!',it.x,it.y,'#ffd0e8')}}else if(inv<=0){en-=12;acid=5;inv=1;say('¡Ácido! -12',it.x,it.y,'#9dff6a')}}}
+if(lv==2){const[a,b]=cellOf(P.x,P.y);if(T-pdT>.3){pd=bfs(a,b);pdT=T}
+for(const f of foes){const[fx,fy]=cellOf(f.x,f.y);let tx=P.x,ty=P.y;if(fx!=a||fy!=b){const c=g[fy*cols+fx];let bd=1e9;for(let i=0;i<4;i++)if(!c.w[i]){const nx=fx+D[i][0],ny=fy+D[i][1];if(pd[ny*cols+nx]<bd){bd=pd[ny*cols+nx];const p=cc(nx,ny);tx=p.x;ty=p.y}}}
+const d=Math.hypot(tx-f.x,ty-f.y)||1,st=Math.min(d,82*dt);f.x+=(tx-f.x)/d*st;f.y+=(ty-f.y)/d*st;
+if(Math.hypot(f.x-P.x,f.y-P.y)<20&&inv<=0){en-=20;inv=1.2;say('¡Macrófago! -20',P.x,P.y-16,'#ff9bb0');const s=spots(8).find(p=>Math.hypot(p.x-P.x,p.y-P.y)>250);if(s){f.x=s.x;f.y=s.y}}}}
+if(lv<4){if(P.x>ox+cols*cs-cs*.5&&Math.abs(P.y-(oy+(gr+.5)*cs))<cs*.5)openGate()}
+else if(Math.hypot(P.x-(WW-70),P.y-H/2)<52+P.r)end(true);
+if(en<=0)end(false,'Te quedaste sin energía vital.')}
+function sperm(x,y,a,col,r,ph,glow,me){X.save();X.translate(x,y);X.rotate(a);X.shadowColor=col;X.shadowBlur=glow?20:8;X.strokeStyle=col;X.lineCap='round';X.lineJoin='round';X.beginPath();X.moveTo(-r*.6,0);
+for(let i=1;i<=12;i++)X.lineTo(-r*.6-i*r*.75,Math.sin(ph*9-i*.65)*r*.55*(i/12+.2));X.lineWidth=r*.4;X.stroke();
+X.fillStyle=col;X.beginPath();X.ellipse(0,0,r*1.2,r*.9,0,0,7);X.fill();X.shadowBlur=0;X.fillStyle='#2a1040';
+[-1,1].forEach(s=>{X.beginPath();X.arc(r*.4,s*r*.33,r*.22,0,7);X.fill()});X.strokeStyle='#2a1040';X.lineWidth=1.5;X.beginPath();X.arc(r*.55,0,r*.3,-1,1);X.stroke();X.restore()}
+function draw(){const L=LV[lv],gd=X.createLinearGradient(0,0,W,H);gd.addColorStop(0,L.bg[0]);gd.addColorStop(1,L.bg[1]);X.fillStyle=gd;X.fillRect(0,0,W,H);
+X.fillStyle='#fff';BUB.forEach(b=>{X.globalAlpha=.12;X.beginPath();X.arc(((b.x-cam*b.z)%W+W)%W,(b.y+Math.sin(T+b.v)*10),b.r,0,7);X.fill()});X.globalAlpha=1;
+if(lv==4){X.strokeStyle='#fff';X.lineWidth=2;X.globalAlpha=.2;for(let i=0;i<22;i++){const x=((i*131-cam*1.5)%W+W)%W,y=(i*53)%H;X.beginPath();X.moveTo(x,y);X.lineTo(x+40,y);X.stroke()}X.globalAlpha=1}
+X.save();X.translate(-cam,0);if(bake)X.drawImage(bake,0,0);
+if(lv<4){const x=ox+cols*cs,y=oy+(gr+.5)*cs;X.strokeStyle='#5ff';X.shadowColor='#5ff';X.shadowBlur=14;X.lineWidth=5;X.setLineDash([8,6]);X.lineDashOffset=-T*20;X.beginPath();X.moveTo(x,y-cs/2);X.lineTo(x,y+cs/2);X.stroke();X.setLineDash([]);X.shadowBlur=0;X.font='20px serif';X.textAlign='center';X.textBaseline='middle';X.fillText('🧬',x-12,y)}
+else{const x=WW-70,y=H/2,pl=1+Math.sin(T*4)*.04;const rg=X.createRadialGradient(x,y,20,x,y,170);rg.addColorStop(0,'#fff6a0cc');rg.addColorStop(1,'#fff6a000');X.fillStyle=rg;X.fillRect(x-170,y-170,340,340);
+X.fillStyle='#ffe58a';for(let i=0;i<36;i++){const a=i/36*6.283+T*.3;X.beginPath();X.arc(x+Math.cos(a)*64*pl,y+Math.sin(a)*64*pl,7,0,7);X.fill()}
+const og=X.createRadialGradient(x-12,y-12,6,x,y,54);og.addColorStop(0,'#fffbd0');og.addColorStop(1,'#ffb300');X.fillStyle=og;X.shadowColor='#ffd23f';X.shadowBlur=30;X.beginPath();X.arc(x,y,52,0,7);X.fill();X.shadowBlur=0;X.fillStyle='#e08a00aa';X.beginPath();X.arc(x+4,y+4,16,0,7);X.fill();
+X.fillStyle='#fff';X.font='18px serif';X.textAlign='center';for(let i=0;i<10;i++){const a=i*.63+T*.8,d=90+Math.sin(T*3+i)*12;X.globalAlpha=.5+.5*Math.sin(T*5+i);X.fillText('✦',x+Math.cos(a)*d,y+Math.sin(a)*d)}X.globalAlpha=1;X.font='600 15px Fredoka,sans-serif';X.fillText('Ovocito',x,y-84)}
+X.font='26px serif';X.textAlign='center';X.textBaseline='middle';
+for(const it of items){const b=Math.sin(T*4+it.x)*2;if(it.t=='🧪'){X.shadowColor='#7dff3a';X.shadowBlur=14}X.fillText(it.t,it.x,it.y+b);X.shadowBlur=0}
+for(const f of foes){X.shadowColor='#f00';X.shadowBlur=14;X.font='30px serif';X.fillText('👾',f.x,f.y);X.shadowBlur=0}
+R.forEach(r=>{const p=rpos(r),q=r.st=='run'?pAt(r,r.s+4):{x:p.x+1,y:p.y};X.globalAlpha=r.st=='cross'?.35:1;sperm(p.x,p.y,r.st=='run'?Math.atan2(q.y-p.y,q.x-p.x+.01):0,r.col,lv==3?7:10,T+r.k,0);X.globalAlpha=1;
+if(r.st!='run'){X.fillStyle='#fff';X.font='14px serif';X.fillText(r.st=='cross'?'✔':'🤔',p.x,p.y-18)}});
+if(P){X.globalAlpha=inv>0&&Math.floor(T*14)%2?.4:1;if(mucus){X.fillStyle='#ffc2e480';X.beginPath();X.arc(P.x,P.y,P.r*2.2,0,7);X.fill()}if(acid>0){X.fillStyle='#8aff3a55';X.beginPath();X.arc(P.x,P.y,P.r*2,0,7);X.fill()}
+if(boost>0){X.strokeStyle='#ffd23f';X.lineWidth=3;X.beginPath();X.arc(P.x,P.y,P.r*2.2+Math.sin(T*12)*2,0,7);X.stroke()}
+sperm(P.x,P.y,P.a,'#ffffff',P.r,T,1,1);X.globalAlpha=1;X.fillStyle='#fff';X.font='600 12px Fredoka,sans-serif';X.fillText('TÚ',P.x,P.y-P.r-12)}
+X.restore();pop.forEach(p=>{X.globalAlpha=Math.min(1,p.l);X.fillStyle=p.c;X.font='700 16px Fredoka,sans-serif';X.textAlign='center';X.fillText(p.t,p.x,p.y-(1.4-p.l)*30);p.l-=.016});pop=pop.filter(p=>p.l>0);X.globalAlpha=1}
+function hud(){$('z').textContent=(lv+1)+'/5 '+LV[lv].n;$('ef').style.width=Math.max(0,en)+'%';$('p').textContent=(P?rank():1)+'º';$('q').textContent=ok+'/4';
+const s=[];if(boost>0)s.push('⚡ Súper Impulso '+Math.ceil(boost)+'s');if(mucus)s.push('💧 Moco denso: velocidad a la mitad, busca una ⭐');if(acid>0)s.push('🧪 Quemadura ácida');if(lv==3)s.push('🌊 Contracorriente ciliar');$('st').textContent=s.join('   ')}
+function loop(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;upd(dt);if(R.length){draw();hud()}
+const c=$('cf').getContext('2d');if(cfOn){c.clearRect(0,0,W,H);if(S==='end')confetti(0);CF.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.25;p.r+=.2;c.fillStyle=p.c;c.save();c.translate(p.x,p.y);c.rotate(p.r);c.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);c.restore()});CF=CF.filter(p=>p.y<H+20)}
+requestAnimationFrame(loop)}
+addEventListener('keydown',e=>{const k=e.key.length>1?e.key:e.key.toLowerCase();keys[k]=1;if(k.startsWith('Arrow')||k==' ')e.preventDefault();if(S==='gate'&&'1234'.includes(k))ans(+k-1)});
+addEventListener('keyup',e=>{keys[e.key.length>1?e.key:e.key.toLowerCase()]=0});
+function pp(e){const r=C.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}}
+C.addEventListener('pointerdown',e=>{ptr=pp(e)});C.addEventListener('pointermove',e=>{if(ptr)ptr=pp(e)});addEventListener('pointerup',()=>ptr=null);
+load(0);S='menu';menu();requestAnimationFrame(loop);
+</script></body></html>
